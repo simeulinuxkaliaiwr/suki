@@ -12,6 +12,7 @@ const int SCREEN_HEIGHT = 480;
 int main(int argc, char** argv) {
   bool title;
   int current = 0;
+  int arr = 1;
   int k = 0;
   char* filename[argc] = {};
   if (argc == 1) {
@@ -84,8 +85,23 @@ int main(int argc, char** argv) {
           }
           screenSurface = IMG_Load(filename[current]);
           if (screenSurface == NULL) {
-            printf("\033[31m[FATAL] Error while loading image, exiting...\033[0m\n");
-            exit(1);
+            printf("\033[33m[WARN] Error while loading file %s, skipping\033[0m\n", filename[current]);
+            if (arr == 1) {
+              if (current == k - 1) {
+                current = 0;
+              } else {
+                current++;
+              }
+              reload = true;
+            } else if (arr == -1) { 
+              if (current == 0) {
+                current = k - 1;
+              } else {
+                current--;
+              }
+              reload = true;
+            }
+            continue;
           }
           image_texture = SDL_CreateTextureFromSurface(renderer, screenSurface);
           ttfSurface = TTF_RenderUTF8_Blended(font, filename[current], color);
@@ -144,6 +160,7 @@ int main(int argc, char** argv) {
           }
           if (e.type == SDL_KEYDOWN) {
             if (e.key.keysym.sym == SDLK_RIGHT) {
+              arr = 1;
               if (current == k - 1) {
                 current = 0;
               } else {
@@ -151,6 +168,7 @@ int main(int argc, char** argv) {
               }
               reload = true;
             } else if (e.key.keysym.sym == SDLK_LEFT) {
+              arr = -1;
               if (current == 0) {
                 current = k - 1;
               } else {
