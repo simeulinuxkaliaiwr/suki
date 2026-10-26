@@ -1,32 +1,84 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <dirent.h>
+#include <limits.h>
 
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
 int main(int argc, char** argv) {
   bool title;
+  struct stat sttr;
   int current = 0;
   int arr = 1;
   int nonimagefiles = 0;
   int k = 0;
-  char* filename[argc] = {};
-  if (argc == 1) {
-    printf("\033[31mNo arguments provided, exiting...\033[0m\n");
+  int capacity = argc;
+  char** llfname = malloc(capacity * sizeof(char*));
+  if (llfname == NULL) {
+    printf("\033[31mCouldn't alocate memory, exiting...\033[0m\n");
     exit(1);
-  } else {
+  } if (argc == 1) {
+    printf("\033[31mNo arguments provided, exiting...\033[0m\n");
+    exit(1); } else {
     title = false;
     int is_file;
     for (long i = 1;i < argc;i++) {
       is_file = access(argv[i], F_OK);
       if (is_file == 0) {
-        filename[k] = argv[i];
-        k++;
+        if (stat(argv[i], &sttr) == 0) {
+          if (S_ISDIR(sttr.st_mode)) {
+            DIR* directory = opendir(argv[i]);
+            if (directory == NULL) {
+              printf("\033[31m[FATAL] Couldn't open folder, exiting...\033[0m\n");
+              exit(1);
+            }
+            struct dirent* value;
+            value = readdir(directory);
+            while (value != NULL) {
+              if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
+                char filepath[PATH_MAX];
+                snprintf(filepath, PATH_MAX, "%s/%s", argv[i], value->d_name);
+                if (k == capacity) {
+                  capacity = capacity * 2;
+                  char** tmpp = realloc(llfname, capacity * sizeof(char*));
+                  if (tmpp == NULL) {
+                    printf("\033[31mError while reallocating memory, exiting...\033[0m\n");
+                    exit(1);
+                  }
+                  llfname = tmpp;
+                }
+                char* ccc = strdup(filepath);
+                if (ccc == NULL) {
+                  printf("Error on strdup., Exiting...\n");
+                  exit(1);
+                }
+                llfname[k] = ccc;
+                k++;
+              }
+              value = readdir(directory);
+            }
+            closedir(directory);
+          } else {
+            if (k == capacity) {
+              capacity = capacity * 2;
+              char** tmpp = realloc(llfname, capacity * sizeof(char*));
+              if (tmpp == NULL) {
+                printf("\033[31mError while reallocationg memory, exiting...\033[0m\n");
+                exit(1);
+              }
+              llfname = tmpp;
+            }
+            llfname[k] = argv[i];
+            k++;
+          }
+        }
       } else {
         if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--title") == 0) {
           title = true;
@@ -60,7 +112,7 @@ int main(int argc, char** argv) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("SDL Couldn't initialize, SDL error: %s\n", SDL_GetError());
   } else { // Create the window
-    window = SDL_CreateWindow(filename[current], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow(llfname[current], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (window == NULL) {
       printf("SDL Couldn't create the window! SDL error: %s\n", SDL_GetError());
     } else {
@@ -79,14 +131,14 @@ int main(int argc, char** argv) {
       bool reload = true;
       while (quit == false) {
         if (reload) {
-          SDL_SetWindowTitle(window, filename[current]);
+          SDL_SetWindowTitle(window, llfname[current]);
           SDL_DestroyTexture(image_texture);
           if (title) {
             SDL_DestroyTexture(ttf_texture);
           }
-          screenSurface = IMG_Load(filename[current]);
+          screenSurface = IMG_Load(llfname[current]);
           if (screenSurface == NULL) {
-            printf("\033[33m[WARN] Error while loading file %s, skipping\033[0m\n", filename[current]);
+            printf("\033[33m[WARN] Error while loading file %s, skipping\033[0m\n", llfname[current]);
             nonimagefiles++;
             if (nonimagefiles == k) {
               printf("\033[31mCouldn't show any images, exiting...\033[0m\n");
@@ -111,7 +163,7 @@ int main(int argc, char** argv) {
           }
           nonimagefiles = 0;
           image_texture = SDL_CreateTextureFromSurface(renderer, screenSurface);
-          ttfSurface = TTF_RenderUTF8_Blended(font, filename[current], color);
+          ttfSurface = TTF_RenderUTF8_Blended(font, llfname[current], color);
           ttf_texture = SDL_CreateTextureFromSurface(renderer, ttfSurface);
           texture_destination.x = 0;
           if (title) {
@@ -232,6 +284,7 @@ int main(int argc, char** argv) {
     }
   }
 
+  free(llfname);
   if (title) {
     TTF_CloseFont(font);
     TTF_Quit();
