@@ -83,6 +83,10 @@ int main(int argc, char** argv) {
             SDL_DestroyTexture(ttf_texture);
           }
           screenSurface = IMG_Load(filename[current]);
+          if (screenSurface == NULL) {
+            printf("\033[31m[FATAL] Error while loading image, exiting...\033[0m\n");
+            exit(1);
+          }
           image_texture = SDL_CreateTextureFromSurface(renderer, screenSurface);
           ttfSurface = TTF_RenderUTF8_Blended(font, filename[current], color);
           ttf_texture = SDL_CreateTextureFromSurface(renderer, ttfSurface);
