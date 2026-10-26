@@ -13,6 +13,7 @@ int main(int argc, char** argv) {
   bool title;
   int current = 0;
   int arr = 1;
+  int nonimagefiles = 0;
   int k = 0;
   char* filename[argc] = {};
   if (argc == 1) {
@@ -86,6 +87,11 @@ int main(int argc, char** argv) {
           screenSurface = IMG_Load(filename[current]);
           if (screenSurface == NULL) {
             printf("\033[33m[WARN] Error while loading file %s, skipping\033[0m\n", filename[current]);
+            nonimagefiles++;
+            if (nonimagefiles == k) {
+              printf("\033[31mCouldn't show any images, exiting...\033[0m\n");
+              exit(1);
+            }
             if (arr == 1) {
               if (current == k - 1) {
                 current = 0;
@@ -103,6 +109,7 @@ int main(int argc, char** argv) {
             }
             continue;
           }
+          nonimagefiles = 0;
           image_texture = SDL_CreateTextureFromSurface(renderer, screenSurface);
           ttfSurface = TTF_RenderUTF8_Blended(font, filename[current], color);
           ttf_texture = SDL_CreateTextureFromSurface(renderer, ttfSurface);
