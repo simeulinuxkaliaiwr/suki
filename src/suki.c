@@ -50,6 +50,9 @@ char** double_capacity(char** original, int *capacity) {
 int main(int argc, char** argv) {
   bool title;
   int current = 0;
+  int pan_x = 0;
+  int pan_y = 0;
+  bool dragging = false;
   float zoom = 1.0;
   int arr = 1;
   int k = 0;
@@ -185,6 +188,7 @@ int main(int argc, char** argv) {
           if (title) {
             SDL_DestroyTexture(ttf_texture);
           }
+          pan_x = pan_y = 0;
           screenSurface = IMG_Load(llfname[current]);
           zoom = 1.0;
           if (screenSurface == NULL) {
@@ -300,6 +304,31 @@ int main(int argc, char** argv) {
             } else if (e.key.keysym.sym == SDLK_q) {
               quit = true;
             }
+          } else if (e.type == SDL_MOUSEWHEEL) {
+            if (e.wheel.y > 0) {
+              zoom = zoom * 1.25f;
+              if (zoom > 20.0f) {
+                zoom = 20.0f;
+              }
+            } else {
+              zoom = zoom / 1.25f;
+              if (zoom < 0.1f) {
+                zoom = 0.1f;
+              }
+            }
+          } else if (e.type == SDL_MOUSEBUTTONDOWN) {
+            if (e.button.button == SDL_BUTTON_LEFT) {
+              dragging = true;
+            }
+          } else if (e.type == SDL_MOUSEBUTTONUP) {
+            if (e.button.button == SDL_BUTTON_LEFT) {
+              dragging = false;
+            }
+          } else if (e.type == SDL_MOUSEMOTION) {
+            if (dragging) {
+              pan_x += e.motion.xrel;
+              pan_y += e.motion.yrel;
+            }
           }
         }
         SDL_GetWindowSize(window, &win_width, &win_height);
@@ -327,11 +356,11 @@ int main(int argc, char** argv) {
         }
         texture_destination.w = w_image * scale * zoom;
         texture_destination.h = h_image * scale * zoom;
-        texture_destination.x = (a_width - texture_destination.w) / 2;
+        texture_destination.x = (a_width - texture_destination.w) / 2 + pan_x;
         if (title) {
-          texture_destination.y = bg_rect.h + (a_height - texture_destination.h) / 2;
+          texture_destination.y = bg_rect.h + (a_height - texture_destination.h) / 2 + pan_y;
         } else {
-          texture_destination.y = (a_height - texture_destination.h) / 2;
+          texture_destination.y = (a_height - texture_destination.h) / 2 + pan_y;
         }
 
         SDL_SetRenderDrawColor(renderer, 100, 91, 98, 255);
