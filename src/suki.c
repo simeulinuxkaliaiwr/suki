@@ -51,15 +51,64 @@ int main(int argc, char** argv) {
   bool title;
   int current = 0;
   int arr = 1;
-  int nonimagefiles = 0;
   int k = 0;
   int capacity = argc;
   char** llfname = malloc(capacity * sizeof(char*));
   if (llfname == NULL) {
     printf("\033[31mCouldn't alocate memory, exiting...\033[0m\n");
     exit(1);
-  } if (argc == 1) {
-    printf("\033[33mNo arguments provided, opening the current folder...\033[0m\n");
+  }
+  title = false;
+  for (long i = 1;i < argc;i++) {
+    int is_filev = is_file(argv[i]);
+    if (is_filev == 1) {
+      if (is_dir(argv[i]) == 1) {
+        DIR* directory = opendir(argv[i]);
+        if (directory == NULL) {
+          printf("\033[31m[FATAL] Couldn't open folder, exiting...\033[0m\n");
+          exit(1);
+        }
+        struct dirent* value;
+        value = readdir(directory);
+        while (value != NULL) {
+          if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
+            char filepath[PATH_MAX];
+            snprintf(filepath, PATH_MAX, "%s/%s", argv[i], value->d_name);
+            if (k == capacity) {
+              llfname = double_capacity(llfname, &capacity);
+            }
+            char* ccc = strdup(filepath);
+            if (ccc == NULL) {
+              printf("Error on strdup., Exiting...\n");
+              exit(1);
+            }
+            llfname[k] = ccc;
+            k++;
+          }
+          value = readdir(directory);
+        }
+        closedir(directory);
+      } else {
+        if (k == capacity) {
+          llfname = double_capacity(llfname, &capacity);
+        }
+        char* vcompy = strdup(argv[i]);
+        if (vcompy == NULL) {
+          printf("Error while allocating memory, exiting...\n");
+          exit(2);
+        }
+        llfname[k] = vcompy;
+        k++;
+      }
+    } else {
+      if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--title") == 0) {
+        title = true;
+      }
+    }
+  }
+
+  if (k == 0) {
+    printf("\033[33mNo files were given as arguments, opening the current folder...\033[0m\n");
     DIR* directory = opendir(".");
     if (directory == NULL) {
       printf("\033[31mCouldn't open folder, exiting...\033[0m\n");
@@ -82,63 +131,9 @@ int main(int argc, char** argv) {
         llfname[k] = ccc;
         k++;
       }
-        value = readdir(directory);
-      }
-      closedir(directory);
-  } else {
-    title = false;
-    for (long i = 1;i < argc;i++) {
-      int is_filev = is_file(argv[i]);
-      if (is_filev == 1) {
-        if (is_dir(argv[i]) == 1) {
-          DIR* directory = opendir(argv[i]);
-          if (directory == NULL) {
-            printf("\033[31m[FATAL] Couldn't open folder, exiting...\033[0m\n");
-            exit(1);
-          }
-          struct dirent* value;
-          value = readdir(directory);
-          while (value != NULL) {
-            if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
-              char filepath[PATH_MAX];
-              snprintf(filepath, PATH_MAX, "%s/%s", argv[i], value->d_name);
-              if (k == capacity) {
-                llfname = double_capacity(llfname, &capacity);
-              }
-              char* ccc = strdup(filepath);
-              if (ccc == NULL) {
-                printf("Error on strdup., Exiting...\n");
-                exit(1);
-              }
-              llfname[k] = ccc;
-              k++;
-            }
-              value = readdir(directory);
-            }
-            closedir(directory);
-          } else {
-            if (k == capacity) {
-              llfname = double_capacity(llfname, &capacity);
-            }
-            char* vcompy = strdup(argv[i]);
-            if (vcompy == NULL) {
-              printf("Error while allocating memory, exiting...\n");
-              exit(2);
-            }
-            llfname[k] = vcompy;
-            k++;
-          }
-      } else {
-        if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--title") == 0) {
-          title = true;
-        }
-      }
+      value = readdir(directory);
     }
-
-    if (k == 0) {
-      printf("\033[31mNo files were passed or they did not exist, exiting...\033[0m\n");
-      exit(1);
-    }
+    closedir(directory);
   }
   SDL_Window* window = NULL;
 
@@ -188,8 +183,12 @@ int main(int argc, char** argv) {
           screenSurface = IMG_Load(llfname[current]);
           if (screenSurface == NULL) {
             printf("\033[33m[WARN] Error while loading file %s, skipping\033[0m\n", llfname[current]);
-            nonimagefiles++;
-            if (nonimagefiles == k) {
+            int em = k - current - 1;
+            free(llfname[current]);
+            memmove(&llfname[current], &llfname[current + 1], em * sizeof(char*));
+            k--;
+            current--;
+            if (k == 0) {
               printf("\033[31mCouldn't show any images, exiting...\033[0m\n");
               exit(1);
             }
@@ -210,7 +209,6 @@ int main(int argc, char** argv) {
             }
             continue;
           }
-          nonimagefiles = 0;
           image_texture = SDL_CreateTextureFromSurface(renderer, screenSurface);
           ttfSurface = TTF_RenderUTF8_Blended(font, llfname[current], color);
           ttf_texture = SDL_CreateTextureFromSurface(renderer, ttfSurface);
@@ -240,7 +238,7 @@ int main(int argc, char** argv) {
 
           int room_w = (float)screen.w * 0.9;
           int room_h = (float)screen.h * 0.9 - bar_h;
-          
+
           float reg_w = (float)room_w / w_image;
           float reg_h = (float)room_h / h_image;
 
@@ -325,14 +323,14 @@ int main(int argc, char** argv) {
         if (title) {
           SDL_SetRenderDrawColor(renderer, 59, 60, 60, 255);
           SDL_RenderFillRect(renderer, &bg_rect);
-          
+
           SDL_RenderCopy(renderer, ttf_texture, NULL, &ttf_texture_destination);
         }
         SDL_RenderPresent(renderer);
       }
     }
   }
-  
+
   for (long i = 0;i < k;i++) {
     free(llfname[i]);
   }
