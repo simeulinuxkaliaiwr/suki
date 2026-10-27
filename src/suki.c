@@ -289,8 +289,14 @@ int main(int argc, char** argv) {
               reload = true;
             } else if (e.key.keysym.sym == SDLK_EQUALS) {
               zoom = zoom * 1.25f;
+              if (zoom > 20) {
+                zoom = 20.0f;
+              }
             } else if (e.key.keysym.sym == SDLK_MINUS) {
               zoom = zoom / 1.25f;
+              if (zoom < 0.1) {
+                zoom = 0.1f;
+              }
             } else if (e.key.keysym.sym == SDLK_q) {
               quit = true;
             }
