@@ -59,8 +59,32 @@ int main(int argc, char** argv) {
     printf("\033[31mCouldn't alocate memory, exiting...\033[0m\n");
     exit(1);
   } if (argc == 1) {
-    printf("\033[31mNo arguments provided, exiting...\033[0m\n"); // TODO: Open the current folder if there are no arguments
-    exit(1); 
+    printf("\033[33mNo arguments provided, opening the current folder...\033[0m\n");
+    DIR* directory = opendir(".");
+    if (directory == NULL) {
+      printf("\033[31mCouldn't open folder, exiting...\033[0m\n");
+      exit(1);
+    }
+    struct dirent* value;
+    value = readdir(directory);
+    while (value != NULL) {
+      if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
+        char filepath[PATH_MAX];
+        snprintf(filepath, PATH_MAX, "%s/%s", ".", value->d_name);
+        if (k == capacity) {
+          llfname = double_capacity(llfname, &capacity);
+        }
+        char* ccc = strdup(filepath);
+        if (ccc == NULL) {
+          printf("Error on strdup., Exiting...\n");
+          exit(1);
+        }
+        llfname[k] = ccc;
+        k++;
+      }
+        value = readdir(directory);
+      }
+      closedir(directory);
   } else {
     title = false;
     for (long i = 1;i < argc;i++) {
