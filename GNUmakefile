@@ -6,8 +6,9 @@ TARGET = src/suki
 
 $(TARGET): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(SDLFLAGS)
-rebuild:
-	@rm -f $(TARGET)
-	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(SDLFLAGS)
 clean:
 	@rm -f $(TARGET)
+rebuild:
+	clean
+	$(TARGET)
+.PHONY: all clean rebuild

@@ -50,6 +50,7 @@ char** double_capacity(char** original, int *capacity) {
 int main(int argc, char** argv) {
   bool title;
   int current = 0;
+  float zoom = 1.0;
   int arr = 1;
   int k = 0;
   int capacity = argc;
@@ -185,6 +186,7 @@ int main(int argc, char** argv) {
             SDL_DestroyTexture(ttf_texture);
           }
           screenSurface = IMG_Load(llfname[current]);
+          zoom = 1.0;
           if (screenSurface == NULL) {
             printf("\033[33m[WARN] Error while loading file %s, skipping\033[0m\n", llfname[current]);
             int em = k - current - 1;
@@ -285,6 +287,10 @@ int main(int argc, char** argv) {
                 current--;
               }
               reload = true;
+            } else if (e.key.keysym.sym == SDLK_EQUALS) {
+              zoom = zoom * 1.25f;
+            } else if (e.key.keysym.sym == SDLK_MINUS) {
+              zoom = zoom / 1.25f;
             } else if (e.key.keysym.sym == SDLK_q) {
               quit = true;
             }
@@ -313,8 +319,8 @@ int main(int argc, char** argv) {
         if (scale > 1) {
           scale = 1;
         }
-        texture_destination.w = w_image * scale;
-        texture_destination.h = h_image * scale;
+        texture_destination.w = w_image * scale * zoom;
+        texture_destination.h = h_image * scale * zoom;
         texture_destination.x = (a_width - texture_destination.w) / 2;
         if (title) {
           texture_destination.y = bg_rect.h + (a_height - texture_destination.h) / 2;
@@ -322,7 +328,37 @@ int main(int argc, char** argv) {
           texture_destination.y = (a_height - texture_destination.h) / 2;
         }
 
+        SDL_SetRenderDrawColor(renderer, 100, 91, 98, 255);
         SDL_RenderClear(renderer);
+        SDL_Rect board;
+        board.w = 16;
+        board.h = 16;
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        for (int y = texture_destination.y;y < texture_destination.y + texture_destination.h;y += 16) {
+          board.y = y;
+          if (y + 16 > texture_destination.y + texture_destination.h) {
+            board.h = (texture_destination.y + texture_destination.h) - y;
+          } else {
+            board.h = 16;
+          }
+          for (int x = texture_destination.x;x < texture_destination.x + texture_destination.w;x += 16) {
+            if (x + 16 > texture_destination.x + texture_destination.w) {
+              board.w = (texture_destination.x + texture_destination.w) - x;
+            } else {
+              board.w = 16;
+            }
+            board.x = x;
+            int column = (x - texture_destination.x) / 16;
+            int row = (y - texture_destination.y) / 16;
+            int sum = column + row;
+            if (sum % 2 == 0) {
+              SDL_SetRenderDrawColor(renderer, 168, 167, 165, 255);
+            } else {
+              SDL_SetRenderDrawColor(renderer, 115, 114, 112, 255);
+            }
+            SDL_RenderFillRect(renderer, &board);
+          }
+        }
         SDL_RenderCopy(renderer, image_texture, NULL, &texture_destination);
         if (title) {
           SDL_SetRenderDrawColor(renderer, 59, 60, 60, 255);
