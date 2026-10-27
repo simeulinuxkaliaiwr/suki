@@ -12,9 +12,43 @@
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
+int is_file(char* filename) {
+  int ftmp;
+  ftmp = access(filename, F_OK);
+  if (ftmp == 0) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+int is_dir(char* filename) {
+  struct stat sttr;
+  if (stat(filename, &sttr) == 0) {
+    if (S_ISDIR(sttr.st_mode)) {
+      return 1;
+    } else {
+      return 0;
+    }
+  } else {
+    printf("\033[31mstat() failed, exiting...\033[0m\n");
+    exit(1);
+  }
+}
+
+char** double_capacity(char** original, int *capacity) {
+  *capacity = *capacity * 2;
+  char** tmp = realloc(original, *capacity * sizeof(char*));
+  if (tmp == NULL) {
+    printf("\033[31mError while allocating memory.\033[0m\n");
+    exit(1);
+  }
+  original = tmp;
+  return original;
+}
+
 int main(int argc, char** argv) {
   bool title;
-  struct stat sttr;
   int current = 0;
   int arr = 1;
   int nonimagefiles = 0;
@@ -25,60 +59,51 @@ int main(int argc, char** argv) {
     printf("\033[31mCouldn't alocate memory, exiting...\033[0m\n");
     exit(1);
   } if (argc == 1) {
-    printf("\033[31mNo arguments provided, exiting...\033[0m\n");
-    exit(1); } else {
+    printf("\033[31mNo arguments provided, exiting...\033[0m\n"); // TODO: Open the current folder if there are no arguments
+    exit(1); 
+  } else {
     title = false;
-    int is_file;
     for (long i = 1;i < argc;i++) {
-      is_file = access(argv[i], F_OK);
-      if (is_file == 0) {
-        if (stat(argv[i], &sttr) == 0) {
-          if (S_ISDIR(sttr.st_mode)) {
-            DIR* directory = opendir(argv[i]);
-            if (directory == NULL) {
-              printf("\033[31m[FATAL] Couldn't open folder, exiting...\033[0m\n");
-              exit(1);
-            }
-            struct dirent* value;
-            value = readdir(directory);
-            while (value != NULL) {
-              if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
-                char filepath[PATH_MAX];
-                snprintf(filepath, PATH_MAX, "%s/%s", argv[i], value->d_name);
-                if (k == capacity) {
-                  capacity = capacity * 2;
-                  char** tmpp = realloc(llfname, capacity * sizeof(char*));
-                  if (tmpp == NULL) {
-                    printf("\033[31mError while reallocating memory, exiting...\033[0m\n");
-                    exit(1);
-                  }
-                  llfname = tmpp;
-                }
-                char* ccc = strdup(filepath);
-                if (ccc == NULL) {
-                  printf("Error on strdup., Exiting...\n");
-                  exit(1);
-                }
-                llfname[k] = ccc;
-                k++;
+      int is_filev = is_file(argv[i]);
+      if (is_filev == 1) {
+        if (is_dir(argv[i]) == 1) {
+          DIR* directory = opendir(argv[i]);
+          if (directory == NULL) {
+            printf("\033[31m[FATAL] Couldn't open folder, exiting...\033[0m\n");
+            exit(1);
+          }
+          struct dirent* value;
+          value = readdir(directory);
+          while (value != NULL) {
+            if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
+              char filepath[PATH_MAX];
+              snprintf(filepath, PATH_MAX, "%s/%s", argv[i], value->d_name);
+              if (k == capacity) {
+                llfname = double_capacity(llfname, &capacity);
               }
+              char* ccc = strdup(filepath);
+              if (ccc == NULL) {
+                printf("Error on strdup., Exiting...\n");
+                exit(1);
+              }
+              llfname[k] = ccc;
+              k++;
+            }
               value = readdir(directory);
             }
             closedir(directory);
           } else {
             if (k == capacity) {
-              capacity = capacity * 2;
-              char** tmpp = realloc(llfname, capacity * sizeof(char*));
-              if (tmpp == NULL) {
-                printf("\033[31mError while reallocationg memory, exiting...\033[0m\n");
-                exit(1);
-              }
-              llfname = tmpp;
+              llfname = double_capacity(llfname, &capacity);
             }
-            llfname[k] = argv[i];
+            char* vcompy = strdup(argv[i]);
+            if (vcompy == NULL) {
+              printf("Error while allocating memory, exiting...\n");
+              exit(2);
+            }
+            llfname[k] = vcompy;
             k++;
           }
-        }
       } else {
         if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--title") == 0) {
           title = true;
@@ -283,7 +308,10 @@ int main(int argc, char** argv) {
       }
     }
   }
-
+  
+  for (long i = 0;i < k;i++) {
+    free(llfname[i]);
+  }
   free(llfname);
   if (title) {
     TTF_CloseFont(font);
