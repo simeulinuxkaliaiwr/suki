@@ -134,6 +134,10 @@ int main(int argc, char** argv) {
       value = readdir(directory);
     }
     closedir(directory);
+    if (k == 0) {
+      printf("\033[31mCouldn't find any images, empty folder maybe?\033[0m\n");
+      exit(1);
+    }
   }
   SDL_Window* window = NULL;
 
@@ -187,7 +191,9 @@ int main(int argc, char** argv) {
             free(llfname[current]);
             memmove(&llfname[current], &llfname[current + 1], em * sizeof(char*));
             k--;
-            current--;
+            if (arr == 1) {
+              current--;
+            }
             if (k == 0) {
               printf("\033[31mCouldn't show any images, exiting...\033[0m\n");
               exit(1);
@@ -198,14 +204,12 @@ int main(int argc, char** argv) {
               } else {
                 current++;
               }
-              reload = true;
             } else if (arr == -1) { 
               if (current == 0) {
                 current = k - 1;
               } else {
                 current--;
               }
-              reload = true;
             }
             continue;
           }
