@@ -289,12 +289,12 @@ int main(int argc, char** argv) {
               reload = true;
             } else if (e.key.keysym.sym == SDLK_EQUALS) {
               zoom = zoom * 1.25f;
-              if (zoom > 20) {
+              if (zoom > 20.0f) {
                 zoom = 20.0f;
               }
             } else if (e.key.keysym.sym == SDLK_MINUS) {
               zoom = zoom / 1.25f;
-              if (zoom < 0.1) {
+              if (zoom < 0.1f) {
                 zoom = 0.1f;
               }
             } else if (e.key.keysym.sym == SDLK_q) {
@@ -337,9 +337,6 @@ int main(int argc, char** argv) {
         SDL_SetRenderDrawColor(renderer, 100, 91, 98, 255);
         SDL_RenderClear(renderer);
         SDL_Rect board;
-        board.w = 16;
-        board.h = 16;
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         for (int y = texture_destination.y;y < texture_destination.y + texture_destination.h;y += 16) {
           board.y = y;
           if (y + 16 > texture_destination.y + texture_destination.h) {
