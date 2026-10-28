@@ -56,13 +56,64 @@ int qcmp(const void* str1, const void* str2) {
   return strverscmp(x, y);
 }
 
+char** add_folder(const char* path, char** list, int* k, int* capacity) {
+  DIR* directory = opendir(path);
+  if (directory == NULL) {
+    printf("\033[31m[FATAL] Couldn't open folder, exiting...\033[0m\n");
+    exit(1);
+  }
+  struct dirent* value;
+  value = readdir(directory);
+  while (value != NULL) {
+    if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
+      char filepath[PATH_MAX];
+      snprintf(filepath, PATH_MAX, "%s/%s", path, value->d_name);
+      if (*k == *capacity) {
+        list = double_capacity(list, capacity);
+      }
+      char* ccc = strdup(filepath);
+      if (ccc == NULL) {
+        printf("Error on strdup., Exiting...\n");
+        exit(1);
+      }
+      list[*k] = ccc;
+      (*k)++;
+    }
+    value = readdir(directory);
+  }
+  closedir(directory);
+  return list;
+}
+
+// what hit_test needs: pointers to main's own variables, so it always sees their current values
+struct hit_info {
+  int* title_h;
+  float* zoom;
+};
+
+// SDL asks this on every mouse press: DRAGGABLE moves the window, NORMAL sends suki the click
+SDL_HitTestResult hit_test(SDL_Window* win, const SDL_Point* area, void* data) {
+  (void)win; // not needed, but SDL always passes it
+  struct hit_info* info = (struct hit_info*)data;
+  if (area->y < *info->title_h) {
+    return SDL_HITTEST_DRAGGABLE;
+  }
+  // not zoomed in or out: dragging moves the window instead of the picture
+  if (*info->zoom > 0.99f && *info->zoom < 1.01f) {
+    return SDL_HITTEST_DRAGGABLE;
+  }
+  return SDL_HITTEST_NORMAL;
+}
+
 int main(int argc, char** argv) {
   bool title;
+  int title_h = 0; // height of the title bar, 0 when there's none
   int current = 0;
   int pan_x = 0;
   int pan_y = 0;
   bool dragging = false;
   float zoom = 1.0;
+  struct hit_info info = { &title_h, &zoom };
   int arr = 1;
   int k = 0;
   int capacity = argc;
@@ -76,31 +127,7 @@ int main(int argc, char** argv) {
     int is_filev = is_file(argv[i]);
     if (is_filev == 1) {
       if (is_dir(argv[i]) == 1) {
-        DIR* directory = opendir(argv[i]);
-        if (directory == NULL) {
-          printf("\033[31m[FATAL] Couldn't open folder, exiting...\033[0m\n");
-          exit(1);
-        }
-        struct dirent* value;
-        value = readdir(directory);
-        while (value != NULL) {
-          if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
-            char filepath[PATH_MAX];
-            snprintf(filepath, PATH_MAX, "%s/%s", argv[i], value->d_name);
-            if (k == capacity) {
-              llfname = double_capacity(llfname, &capacity);
-            }
-            char* ccc = strdup(filepath);
-            if (ccc == NULL) {
-              printf("Error on strdup., Exiting...\n");
-              exit(1);
-            }
-            llfname[k] = ccc;
-            k++;
-          }
-          value = readdir(directory);
-        }
-        closedir(directory);
+        llfname = add_folder(argv[i], llfname, &k, &capacity);
       } else {
         if (k == capacity) {
           llfname = double_capacity(llfname, &capacity);
@@ -122,31 +149,7 @@ int main(int argc, char** argv) {
 
   if (k == 0) {
     printf("\033[33mNo files were given as arguments, opening the current folder...\033[0m\n");
-    DIR* directory = opendir(".");
-    if (directory == NULL) {
-      printf("\033[31mCouldn't open folder, exiting...\033[0m\n");
-      exit(1);
-    }
-    struct dirent* value;
-    value = readdir(directory);
-    while (value != NULL) {
-      if (!(strcmp(value->d_name, ".") == 0) && !(strcmp(value->d_name, "..") == 0)) {
-        char filepath[PATH_MAX];
-        snprintf(filepath, PATH_MAX, "%s/%s", ".", value->d_name);
-        if (k == capacity) {
-          llfname = double_capacity(llfname, &capacity);
-        }
-        char* ccc = strdup(filepath);
-        if (ccc == NULL) {
-          printf("Error on strdup., Exiting...\n");
-          exit(1);
-        }
-        llfname[k] = ccc;
-        k++;
-      }
-      value = readdir(directory);
-    }
-    closedir(directory);
+    llfname = add_folder(".", llfname, &k, &capacity);
     if (k == 0) {
       printf("\033[31mCouldn't find any images, empty folder maybe?\033[0m\n");
       exit(1);
@@ -179,6 +182,7 @@ int main(int argc, char** argv) {
       printf("SDL Couldn't create the window! SDL error: %s\n", SDL_GetError());
     } else {
       renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+      SDL_SetWindowHitTest(window, hit_test, &info);
       if (title) {
         TTF_Init();
         color.r = (Uint8)0;
@@ -247,6 +251,7 @@ int main(int argc, char** argv) {
             bg_rect.x = 0;
             bg_rect.y = 0;
             bg_rect.h = ttf_texture_destination.h + 15;
+            title_h = bg_rect.h;
           }
           SDL_Rect screen;
           SDL_GetDisplayUsableBounds(0, &screen);
