@@ -107,11 +107,12 @@ SDL_HitTestResult hit_test(SDL_Window* win, const SDL_Point* area, void* data) {
 
 int main(int argc, char** argv) {
   bool title;
+  bool dragging = false;
   int title_h = 0; // height of the title bar, 0 when there's none
   int current = 0;
   int pan_x = 0;
   int pan_y = 0;
-  bool dragging = false;
+  bool fullscreen = false;
   float zoom = 1.0;
   struct hit_info info = { &title_h, &zoom };
   int arr = 1;
@@ -315,6 +316,17 @@ int main(int argc, char** argv) {
               zoom = zoom / 1.25f;
               if (zoom < 0.1f) {
                 zoom = 0.1f;
+              }
+            } else if (e.key.keysym.sym == SDLK_0) {
+              zoom = 1.0;
+              pan_x = pan_y = 0;
+            } else if (e.key.keysym.sym == SDLK_f) {
+              if (fullscreen) {
+                SDL_SetWindowFullscreen(window, 0);
+                fullscreen = false;
+              } else {
+                SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                fullscreen = true;
               }
             } else if (e.key.keysym.sym == SDLK_q) {
               quit = true;
