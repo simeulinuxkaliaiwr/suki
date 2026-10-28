@@ -1,3 +1,6 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -45,6 +48,12 @@ char** double_capacity(char** original, int *capacity) {
   }
   original = tmp;
   return original;
+}
+
+int qcmp(const void* str1, const void* str2) {
+  char* x = *(char**)str1;
+  char* y = *(char**)str2;
+  return strverscmp(x, y);
 }
 
 int main(int argc, char** argv) {
@@ -160,6 +169,7 @@ int main(int argc, char** argv) {
   SDL_Colour color;
   TTF_Font* font = NULL;
 
+  qsort(llfname, k, sizeof(char*), qcmp);
   SDL_SetHint(SDL_HINT_VIDEODRIVER, "wayland,x11");
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("SDL Couldn't initialize, SDL error: %s\n", SDL_GetError());
