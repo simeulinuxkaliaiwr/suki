@@ -4,6 +4,7 @@ Suki is a minimal image viewer built in C using SDL2. It is meant to be small, m
 
 ## Features:
 - Open directories as arguments
+- Optional title bars (-t/--title)
 - Skips non-image files
 - Supports dragging
 - Supports zooming (by +/- and by the mouse wheel)
