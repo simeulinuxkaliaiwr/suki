@@ -113,6 +113,8 @@ int main(int argc, char** argv) {
   int current = 0;
   int pan_x = 0;
   int pan_y = 0;
+  int mouse_x = 0;
+  int mouse_y = 0;
   bool fullscreen = false;
   float zoom = 1.0;
   struct hit_info info = { &title_h, &zoom };
@@ -349,6 +351,7 @@ int main(int argc, char** argv) {
               quit = true;
             }
           } else if (e.type == SDL_MOUSEWHEEL) {
+            float old_zoom = zoom;
             if (e.wheel.y > 0) {
               zoom = zoom * 1.25f;
               if (zoom > 20.0f) {
@@ -360,6 +363,20 @@ int main(int argc, char** argv) {
                 zoom = 0.1f;
               }
             }
+            float f = zoom / old_zoom;
+            SDL_GetWindowSize(window, &win_width, &win_height);
+            int width = win_width;
+            if (title) {
+              int height = win_height - bg_rect.h;
+            }
+            int top;
+            if (title) { top = bg_rect.h; } else { top = 0; }
+            int height = win_height;
+            SDL_GetMouseState(&mouse_x, &mouse_y);
+            float cx = mouse_x - (width / 2);
+            float cy = mouse_y - top - (height / 2);
+            pan_x = cx + f * (pan_x - cx);
+            pan_y = cy + f * (pan_y - cy);
           } else if (e.type == SDL_MOUSEBUTTONDOWN) {
             if (e.button.button == SDL_BUTTON_LEFT) {
               dragging = true;
@@ -406,7 +423,6 @@ int main(int argc, char** argv) {
         } else {
           texture_destination.y = (a_height - texture_destination.h) / 2 + pan_y;
         }
-
         SDL_SetRenderDrawColor(renderer, 100, 91, 98, 255);
         SDL_RenderClear(renderer);
         SDL_Rect board;
