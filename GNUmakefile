@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wshadow -Wextra
-SDLFLAGS = $(shell pkg-config --cflags --libs sdl2 SDL2_image SDL2_ttf)
+SDLFLAGS = $(shell pkg-config --cflags --libs sdl2 SDL2_image SDL2_ttf fontconfig)
 SRC = src/suki.c
 TARGET = src/suki
 

@@ -5,6 +5,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <sys/stat.h>
+#include <fontconfig/fontconfig.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -171,7 +172,7 @@ int main(int argc, char** argv) {
   SDL_Rect texture_destination;
   SDL_Renderer* renderer = NULL;
   SDL_Colour color;
-  TTF_Font* font = NULL;
+  TTF_Font* afont = NULL;
 
   qsort(llfname, k, sizeof(char*), qcmp);
   SDL_SetHint(SDL_HINT_VIDEODRIVER, "wayland,x11");
@@ -190,7 +191,21 @@ int main(int argc, char** argv) {
         color.g = (Uint8)0;
         color.b = (Uint8)0;
         color.a = (Uint8)255;
-        font = TTF_OpenFont("/home/elliot/.fonts/JetBrainsMonoNLNerdFont-BoldItalic.ttf", 26);
+        FcConfig* font = FcInitLoadConfigAndFonts();
+        char* namefont = "monospace:bold";
+        FcChar8* file;
+        FcResult result;
+        FcPattern* pattern = FcNameParse((FcChar8*)namefont);
+        FcConfigSubstitute(font, pattern, FcMatchPattern);
+        FcDefaultSubstitute(pattern);
+        FcPattern* match = FcFontMatch(font, pattern, &result);
+        FcPatternGetString(match, FC_FILE, 0, &file);
+        afont = TTF_OpenFont((char*)file, 26);
+        
+        if (afont == NULL) {
+          printf("\033[33mCouldn't open font, running without title bar\033[0m\n");
+          title = false;
+        }
       }
       IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
       SDL_Event e;
@@ -235,8 +250,10 @@ int main(int argc, char** argv) {
             continue;
           }
           image_texture = SDL_CreateTextureFromSurface(renderer, screenSurface);
-          ttfSurface = TTF_RenderUTF8_Blended(font, llfname[current], color);
-          ttf_texture = SDL_CreateTextureFromSurface(renderer, ttfSurface);
+          if (title) {
+            ttfSurface = TTF_RenderUTF8_Blended(afont, llfname[current], color);
+            ttf_texture = SDL_CreateTextureFromSurface(renderer, ttfSurface);
+          }
           texture_destination.x = 0;
           if (title) {
             texture_destination.y = ttfSurface->h + (10*2);
@@ -435,7 +452,7 @@ int main(int argc, char** argv) {
   }
   free(llfname);
   if (title) {
-    TTF_CloseFont(font);
+    TTF_CloseFont(afont);
     TTF_Quit();
     SDL_DestroyTexture(ttf_texture);
   }
